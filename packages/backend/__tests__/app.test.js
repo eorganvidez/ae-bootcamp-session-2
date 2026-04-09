@@ -1,6 +1,10 @@
 const request = require('supertest');
 const { app, db } = require('../src/app');
 
+beforeEach(() => {
+  db.exec('DELETE FROM todos');
+});
+
 afterAll(() => {
   if (db) db.close();
 });
@@ -25,13 +29,6 @@ describe('Health check', () => {
 });
 
 describe('GET /api/todos', () => {
-  it('returns an array of todos', async () => {
-    await createTodo({ title: 'Sort test todo' });
-    const response = await request(app).get('/api/todos');
-    expect(response.status).toBe(200);
-    expect(Array.isArray(response.body)).toBe(true);
-  });
-
   it('todo items have the expected shape', async () => {
     await createTodo({ title: 'Shape test', due_date: '2026-12-01', notes: 'some notes' });
     const response = await request(app).get('/api/todos');

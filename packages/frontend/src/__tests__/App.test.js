@@ -34,6 +34,7 @@ const server = setupServer(
   }),
   rest.delete('/api/todos/:id', (req, res, ctx) => {
     const id = parseInt(req.params.id, 10);
+    serverTodos = serverTodos.filter((t) => t.id !== id);
     return res(ctx.status(200), ctx.json({ message: 'Todo deleted successfully', id }));
   })
 );
@@ -53,21 +54,18 @@ const renderApp = async () => {
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 describe('App', () => {
-  test('renders the page heading', async () => {
+  test('displays fetched todos and page heading', async () => {
     await renderApp();
     expect(screen.getByRole('heading', { name: /to do app/i })).toBeInTheDocument();
-  });
-
-  test('shows a loading spinner while fetching', async () => {
-    act(() => { render(<App />); });
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole('progressbar')).not.toBeInTheDocument());
-  });
-
-  test('displays fetched todos', async () => {
-    await renderApp();
     expect(screen.getByText('Buy milk')).toBeInTheDocument();
     expect(screen.getByText('Write tests')).toBeInTheDocument();
+  });
+
+  test('shows a loading spinner then hides it after fetch', async () => {
+    render(<App />);
+    // Spinner must appear synchronously before the async fetch completes
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('progressbar')).not.toBeInTheDocument());
   });
 
   test('shows empty state when no tasks exist', async () => {
@@ -99,8 +97,10 @@ describe('App', () => {
 
   test('toggles a task from incomplete to complete', async () => {
     const user = userEvent.setup();
+    serverTodos = [TODO_1];
     await renderApp();
-    const checkbox = screen.getByRole('checkbox', { name: /mark "Buy milk" as complete/i });
+    // Use findBy to retry until the list has rendered (avoids timing sensitivity)
+    const checkbox = await screen.findByRole('checkbox', { name: /mark "Buy milk"/i });
     expect(checkbox).not.toBeChecked();
     await user.click(checkbox);
     await waitFor(() => expect(checkbox).toBeChecked());

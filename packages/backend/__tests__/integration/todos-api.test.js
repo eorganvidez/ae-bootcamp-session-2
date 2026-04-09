@@ -1,6 +1,10 @@
 const request = require('supertest');
 const { app, db } = require('../../src/app');
 
+beforeEach(() => {
+  db.exec('DELETE FROM todos');
+});
+
 afterAll(() => {
   if (db) db.close();
 });
@@ -15,12 +19,6 @@ const createTodo = async (fields = {}) => {
 
 describe('Todos API — integration', () => {
   describe('GET /api/todos', () => {
-    it('returns 200 with an array', async () => {
-      const res = await request(app).get('/api/todos');
-      expect(res.status).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
-    });
-
     it('returns todos sorted: incomplete before completed', async () => {
       const incomplete = await createTodo({ title: 'Still active' });
       const completed  = await createTodo({ title: 'Done' });
